@@ -5,10 +5,9 @@ const exjwt = require('express-jwt');
 const bodyParser = require('body-parser');
 const path = require('path');
 
-
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000'); 
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); 
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next();
 });
 
@@ -16,71 +15,65 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const PORT = 3000;
-
-const secretKey = 'MySuperSecretKey'; 
+const secretKey = 'MySuperSecretKey';
 
 const jwtMW = exjwt({
     secret: secretKey,
     algorithms: ['HS256']
 });
 
+// Mock user data (remember, don't store plain-text passwords even in mocks)
 let users = [
     {
         id: 1,
         username: 'Praharsha',
-        password: '123'
+        password: '123' // This should be hashed
     },
     {
         id: 2,
         username: 'Srikar',
-        password: '456'
+        password: '456' // This should be hashed
     }
 ];
 
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
-    let userFound = false;
+    
+    const user = users.find(u => u.username === username && u.password === password);
 
-    for (let user of users) {
-        if (username == user.username && password == user.password) {
-            let token = jwt.sign({ id: user.id, username: user.username }, secretKey, { expiresIn: 180 });
-            res.json({
-                success: true,
-                err: null,
-                token
-            });
-            userFound = true;
-            break;
-        }
-    }
-
-    if (!userFound) {
-        res.status(401).json({
-            success: false,
-            token: null,
-            err: 'Username or password is incorrect'
+    if (user) {
+        let token = jwt.sign({ id: user.id, username: user.username }, secretKey, { expiresIn: 180 });
+        console.log(`User ${username} authenticated successfully.`);
+        return res.json({
+            success: true,
+            err: null,
+            token
         });
     }
+
+    console.error(`Authentication failed for user ${username}.`);
+    res.status(401).json({
+        success: false,
+        token: null,
+        err: 'Username or password is incorrect'
+    });
 });
 
 app.get('/api/dashboard', jwtMW, (req, res) => {
+    console.log("Accessed dashboard.");
     res.json({
         success: true,
         myContent: 'Secret content that only logged-in people can see'
     });
 });
 
-
-
 app.get('/api/settings', jwtMW, (req, res) => {
+    console.log("Accessed settings.");
     res.json({
         success: true,
         myContent: 'Settings content that is protected by JWT'
     });
 });
-
-
-
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -88,6 +81,7 @@ app.get('/', (req, res) => {
 
 app.use(function (err, req, res, next) {
     if (err.name === 'UnauthorizedError') {
+        console.error("Unauthorized access attempt detected.");
         res.status(401).json({
             success: false,
             officialError: err,
@@ -99,5 +93,5 @@ app.use(function (err, req, res, next) {
 });
 
 app.listen(PORT, () => {
-    console.log(`Serving port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

@@ -32,33 +32,30 @@
     </div>
 
     <script>
-        function handleNavigation() {
+        function navigateContentCheck() {
             const token = localStorage.getItem('jwt');
             const currentPath = window.location.pathname;
 
             if (token) {
-                // Decode the JWT token and check its expiration
-                const decodedToken = decodeJWT(token);
+                const decodedToken = parseSecureToken(token);
                 if (decodedToken.exp < Date.now() / 1000) {
-
                     localStorage.removeItem('jwt');
                     window.location.href = '/';
-                    return; // Stop further navigation handling
+                    return;
                 }
 
                 if (currentPath === '/dashboard') {
-                    getDashboard();
+                    loadUserDashboard();
                 } else if (currentPath === '/settings') {
-                    getSettings();
+                    loadUserPreferences();
                 }
             } else {
-
                 window.location.href = '/';
             }
         }
-    setInterval(handleNavigation, 60000);    
+        setInterval(navigateContentCheck, 60000);
 
-        function decodeJWT(token) {
+        function parseSecureToken(token) {
             try {
                 const base64Url = token.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -73,8 +70,7 @@
             }
         }
 
-
-        function login() {
+        function authenticateUser() {
             const data = {
                 username: document.getElementById('username').value,
                 password: document.getElementById('password').value,
@@ -89,43 +85,37 @@
                         localStorage.setItem('jwt', token);
                         const currentPath = window.location.pathname;
                         if (currentPath === '/dashboard') {
-                            getDashboard();
+                            loadUserDashboard();
                         } else if (currentPath === '/settings') {
-                            getSettings();
+                            loadUserPreferences();
                         } else {
-
                             history.pushState({}, '', '/dashboard');
-                            getDashboard();
+                            loadUserDashboard();
                         }
                     }
                 });
         }
 
-
-        function getDashboard() {
+        function loadUserDashboard() {
             document.querySelector('h1.row').innerHTML = 'Dashboard';
             document.querySelector('main').innerHTML = 'Dashboard Content Goes Here';
         }
 
-
-        function getSettings() {
+        function loadUserPreferences() {
             document.querySelector('h1.row').innerHTML = 'Settings';
             document.querySelector('main').innerHTML = 'Settings Content Goes Here';
         }
 
-
         window.onload = function () {
-            handleNavigation();
-            document.getElementById('loginButton').addEventListener('click', login);
+            navigateContentCheck();
+            document.getElementById('loginButton').addEventListener('click', authenticateUser);
             document.getElementById('dashboardButton').addEventListener('click', function() {
-              
                 history.pushState({}, '', '/dashboard');
-                getDashboard();
+                loadUserDashboard();
             });
             document.getElementById('settingsButton').addEventListener('click', function() {
-      
                 history.pushState({}, '', '/settings');
-                getSettings();
+                loadUserPreferences();
             });
         };
         window.onpopstate = function(event) {
